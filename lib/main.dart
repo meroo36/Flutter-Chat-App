@@ -1,7 +1,8 @@
+
 import 'package:chatapp/src/ui/chat_page.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
   runApp(MyApp());
 }
 

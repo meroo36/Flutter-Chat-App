@@ -1,9 +1,5 @@
-import 'dart:convert';
-
-import 'package:chatapp/src/resources/chat_api_socket.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_socket_io/flutter_socket_io.dart';
-import 'package:flutter_socket_io/socket_io_manager.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ChatPage extends StatefulWidget {
   @override
@@ -11,39 +7,36 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  SocketIO socketIO;
   List<String> messages;
   double height, width;
   TextEditingController textController;
   ScrollController scrollController;
+  IO.Socket socket;
 
   @override
   void initState() {
-    //Initializing the message list
     messages = List<String>();
-    //Initializing the TextEditingController and ScrollController
     textController = TextEditingController();
     scrollController = ScrollController();
-    //Creating the socket
-    // connectSocket();
-    socketIO = SocketIOManager().createSocketIO(
-      'https://meroo-chat.herokuapp.com/',
-      '/',
-    );
-    //Call init before doing anything with socket
-    socketIO.init();
-    //Connect to the socket
-    socketIO.connect();
-    socketIO.subscribe('receive_message', (jsonData) {
-      //Convert the JSON data received into a Map
-      Map<String, dynamic> data = json.decode(jsonData);
-      this.setState(() => messages.add(data['message']));
-      scrollController.animateTo(
-        scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 600),
-        curve: Curves.ease,
-      );
+
+    socket = IO.io("http://meroo-chat.herokuapp.com", <String, dynamic>{
+      'transports': ['websocket'],
+      "autoConnect": false,
     });
+    print("Connecting..");
+
+    socket.on("connect", (_) => print('Connected'));
+    socket.on("disconnect", (_) => print('Disconnected'));
+    socket.on(
+      "chat message",
+      (data) => this.setState(
+        () {
+          messages.add(data[0]);
+        },
+      ),
+    );
+
+    socket.connect();
 
     super.initState();
   }
@@ -97,23 +90,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget buildSendButton() {
     return FloatingActionButton(
       backgroundColor: Colors.deepPurple,
-      onPressed: () {
-        //Check if the textfield has text or not
-        if (textController.text.isNotEmpty) {
-          //Send the message as JSON data to send_message event
-          socketIO.sendMessage(
-              'send_message', json.encode({'message': textController.text}));
-          //Add the message to the list
-          this.setState(() => messages.add(textController.text));
-          textController.text = '';
-          //Scrolldown the list to show the latest message
-          scrollController.animateTo(
-            scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 600),
-            curve: Curves.ease,
-          );
-        }
-      },
+      onPressed: () {},
       child: Icon(
         Icons.send,
         size: 30,
